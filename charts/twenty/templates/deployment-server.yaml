@@ -1,0 +1,145 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "twenty.fullname" . }}-server
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "twenty.labels" . | nindent 4 }}
+    app.kubernetes.io/component: server
+spec:
+  replicas: {{ .Values.server.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "twenty.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: server
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        {{- include "twenty.labels" . | nindent 8 }}
+        app.kubernetes.io/component: server
+    spec:
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      volumes:
+        {{- if .Values.server.dockerDataPersistence.enabled }}
+        - name: docker-data
+          persistentVolumeClaim:
+            claimName: {{ include "twenty.fullname" . }}-docker-data
+        {{- end }}
+        {{- if .Values.server.persistence.enabled }}
+        - name: server-data
+          persistentVolumeClaim:
+            claimName: {{ include "twenty.fullname" . }}-server
+        {{- end }}
+      initContainers:
+        - name: wait-for-db
+          image: postgres:16-alpine
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h {{ .Values.database.host }} -p {{ .Values.database.port }} -U {{ .Values.database.user }}; do
+                echo "Waiting for database socket..."
+                sleep 2
+              done
+        - name: run-migrations
+          image: {{ include "twenty.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - sh
+            - -c
+            - npx -y typeorm migration:run -d dist/database/typeorm/core/core.datasource
+          env:
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.passwordSecret.name }}
+                  key: {{ .Values.database.passwordSecret.key }}
+            - name: PG_DATABASE_URL
+              value: {{ include "twenty.databaseUrl" . | quote }}
+      containers:
+        - name: server
+          image: {{ include "twenty.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if .Values.frontend.overrideServerBaseUrl }}
+          command:
+            - sh
+            - -c
+            - |
+              node dist/main &
+              pid="$!"
+              trap 'kill -TERM "$pid"; wait "$pid"' TERM INT
+
+              (
+                for _ in $(seq 1 180); do
+                  if grep -q "REACT_APP_SERVER_BASE_URL" /app/packages/twenty-server/dist/front/index.html 2>/dev/null; then
+                    sed -i -E 's#"REACT_APP_SERVER_BASE_URL": "[^"]*"#"REACT_APP_SERVER_BASE_URL": {{ .Values.frontend.serverBaseUrl | quote }}#' /app/packages/twenty-server/dist/front/index.html
+                  fi
+                  sleep 1
+                done
+              ) &
+
+              wait "$pid"
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.server.service.port }}
+              protocol: TCP
+          env:
+            - name: SERVER_URL
+              value: {{ .Values.serverUrl | quote }}
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.passwordSecret.name }}
+                  key: {{ .Values.database.passwordSecret.key }}
+            - name: PG_DATABASE_URL
+              value: {{ include "twenty.databaseUrl" . | quote }}
+            - name: REDIS_URL
+              value: {{ .Values.redisUrl | quote }}
+            - name: APP_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "twenty.tokenSecretName" . }}
+                  key: accessToken
+            {{- range $name, $value := .Values.server.env }}
+            - name: {{ $name }}
+              value: {{ $value | quote }}
+            {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 0
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 40
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 5
+          startupProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 60
+          resources:
+            {{- toYaml .Values.server.resources | nindent 12 }}
+          volumeMounts:
+            {{- if .Values.server.dockerDataPersistence.enabled }}
+            - name: docker-data
+              mountPath: /app/docker-data
+            {{- end }}
+            {{- if .Values.server.persistence.enabled }}
+            - name: server-data
+              mountPath: /app/packages/twenty-server/.local-storage
+            {{- end }}

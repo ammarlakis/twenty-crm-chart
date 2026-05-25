@@ -1,0 +1,40 @@
+{{- if .Values.server.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "twenty.fullname" . }}-server
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "twenty.labels" . | nindent 4 }}
+    app.kubernetes.io/component: server
+spec:
+  accessModes:
+    {{- toYaml .Values.server.persistence.accessModes | nindent 4 }}
+  resources:
+    requests:
+      storage: {{ .Values.server.persistence.size }}
+  {{- with .Values.server.persistence.storageClass }}
+  storageClassName: {{ . | quote }}
+  {{- end }}
+---
+{{- end }}
+{{- if .Values.server.dockerDataPersistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "twenty.fullname" . }}-docker-data
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "twenty.labels" . | nindent 4 }}
+    app.kubernetes.io/component: server
+spec:
+  accessModes:
+    {{- toYaml .Values.server.dockerDataPersistence.accessModes | nindent 4 }}
+  resources:
+    requests:
+      storage: {{ .Values.server.dockerDataPersistence.size }}
+  {{- with .Values.server.dockerDataPersistence.storageClass }}
+  storageClassName: {{ . | quote }}
+  {{- end }}
+---
+{{- end }}

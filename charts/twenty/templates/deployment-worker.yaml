@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "twenty.fullname" . }}-worker
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "twenty.labels" . | nindent 4 }}
+    app.kubernetes.io/component: worker
+spec:
+  replicas: {{ .Values.worker.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "twenty.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: worker
+  template:
+    metadata:
+      labels:
+        {{- include "twenty.labels" . | nindent 8 }}
+        app.kubernetes.io/component: worker
+    spec:
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      initContainers:
+        - name: wait-for-db
+          image: postgres:16-alpine
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h {{ .Values.database.host }} -p {{ .Values.database.port }} -U {{ .Values.database.user }}; do
+                echo "Waiting for database socket..."
+                sleep 2
+              done
+      containers:
+        - name: worker
+          image: {{ include "twenty.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            {{- toYaml .Values.worker.command | nindent 12 }}
+          env:
+            - name: SERVER_URL
+              value: {{ .Values.serverUrl | quote }}
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.passwordSecret.name }}
+                  key: {{ .Values.database.passwordSecret.key }}
+            - name: PG_DATABASE_URL
+              value: {{ include "twenty.databaseUrl" . | quote }}
+            - name: REDIS_URL
+              value: {{ .Values.redisUrl | quote }}
+            - name: APP_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "twenty.tokenSecretName" . }}
+                  key: accessToken
+            - name: STORAGE_TYPE
+              value: {{ .Values.server.env.STORAGE_TYPE | quote }}
+            - name: IS_MULTIWORKSPACE_ENABLED
+              value: {{ .Values.server.env.IS_MULTIWORKSPACE_ENABLED | quote }}
+            - name: DEFAULT_SUBDOMAIN
+              value: {{ .Values.server.env.DEFAULT_SUBDOMAIN | quote }}
+          resources:
+            {{- toYaml .Values.worker.resources | nindent 12 }}
