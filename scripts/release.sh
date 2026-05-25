@@ -4,6 +4,7 @@ set -euo pipefail
 CHART_DIR="charts/twenty"
 CHART_FILE="${CHART_DIR}/Chart.yaml"
 CHART_README="${CHART_DIR}/README.md"
+CHART_EXAMPLE="${CHART_DIR}/values.production.example.yaml"
 CHANGELOG_FILE="CHANGELOG.md"
 
 require_cmd() {
@@ -29,6 +30,7 @@ require_cmd python3
 
 require_file "${CHART_FILE}"
 require_file "${CHART_README}"
+require_file "${CHART_EXAMPLE}"
 require_file "${CHANGELOG_FILE}"
 
 if [[ -n "$(git status --porcelain)" ]]; then
@@ -127,10 +129,10 @@ PY
 
 echo "Validating release files..."
 git diff --check
-helm lint "${CHART_DIR}"
-helm template twenty "${CHART_DIR}" >/dev/null
+helm lint "${CHART_DIR}" -f "${CHART_EXAMPLE}"
+helm template twenty "${CHART_DIR}" -f "${CHART_EXAMPLE}" >/dev/null
 
-git add "${CHART_FILE}" "${CHART_README}" "${CHANGELOG_FILE}"
+git add "${CHART_FILE}" "${CHART_README}" "${CHART_EXAMPLE}" "${CHANGELOG_FILE}"
 
 git commit --no-verify -m "chore(release): prepare for ${new_version} #ignore" || {
   echo "Nothing to commit; aborting" >&2

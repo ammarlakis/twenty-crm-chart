@@ -11,7 +11,10 @@ fmt:
     prettier --write .
 
 lint:
-    helm lint charts/twenty
+    helm lint charts/twenty -f charts/twenty/values.production.example.yaml
 
 template:
-    helm template twenty charts/twenty
+    helm template twenty charts/twenty -f charts/twenty/values.production.example.yaml
+
+template-default-fails:
+    ! helm template twenty charts/twenty

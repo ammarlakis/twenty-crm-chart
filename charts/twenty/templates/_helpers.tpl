@@ -1,5 +1,5 @@
 {{- define "twenty.name" -}}
-{{ .Chart.Name }}
+{{ .Values.nameOverride | default .Chart.Name | trunc 63 | trimSuffix "-" }}
 {{- end -}}
 
 {{- define "twenty.fullname" -}}
@@ -11,23 +11,40 @@
 {{- end -}}
 
 {{- define "twenty.labels" -}}
-helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
 app.kubernetes.io/name: {{ include "twenty.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- with .Values.commonLabels }}
+{{- toYaml . }}
+{{- end }}
 {{- end -}}
 
 {{- define "twenty.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "twenty.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end -}}
 
 {{- define "twenty.image" -}}
-{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}
+{{- $tag := .Values.image.tag | default .Chart.AppVersion -}}
+{{- if .Values.image.digest -}}
+{{ .Values.image.repository }}:{{ $tag }}@{{ .Values.image.digest }}
+{{- else -}}
+{{ .Values.image.repository }}:{{ $tag }}
+{{- end -}}
 {{- end -}}
 
-{{- define "twenty.tokenSecretName" -}}
-{{ .Values.secrets.tokens.name | default (printf "%s-tokens" (include "twenty.fullname" .)) }}
+{{- define "twenty.serviceAccountName" -}}
+{{- if .Values.serviceAccount.create -}}
+{{ .Values.serviceAccount.name | default (include "twenty.fullname" .) }}
+{{- else -}}
+{{ .Values.serviceAccount.name | default "default" }}
+{{- end -}}
+{{- end -}}
+
+{{- define "twenty.encryptionSecretName" -}}
+{{ .Values.secrets.encryption.existingSecret | default .Values.secrets.encryption.name | default (printf "%s-encryption" (include "twenty.fullname" .)) }}
 {{- end -}}
 
 {{- define "twenty.secretValue" -}}

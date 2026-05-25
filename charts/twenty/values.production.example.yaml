@@ -1,0 +1,25 @@
+serverUrl: https://twenty.example.com
+redisUrl: redis://redis-master.default.svc.cluster.local:6379
+
+database:
+  host: postgresql.default.svc.cluster.local
+  passwordSecret:
+    name: twenty-postgresql
+    key: password
+
+secrets:
+  encryption:
+    encryptionKey: change-me-to-a-long-random-secret
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: twenty.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: twenty-tls
+      hosts:
+        - twenty.example.com

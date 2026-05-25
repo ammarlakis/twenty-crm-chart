@@ -1,33 +1,82 @@
+# -- Override the chart name used in labels and generated resource names.
+nameOverride: ""
+# -- Override the full release name used for generated Kubernetes resources.
 fullnameOverride: ""
 
+# -- Labels added to every resource created by this chart.
+commonLabels: {}
+# -- Annotations added to every resource created by this chart.
+commonAnnotations: {}
+
 image:
+  # -- Twenty container image repository.
   repository: twentycrm/twenty
+  # -- Twenty image tag. Defaults to `.Chart.AppVersion` when empty.
   tag: ""
+  # -- Optional image digest. When set, renders `repository:tag@digest`.
+  digest: ""
+  # -- Container image pull policy.
   pullPolicy: IfNotPresent
 
+# -- Image pull secrets for private registries.
+imagePullSecrets: []
+
+# -- Public URL where users access Twenty. Required.
 serverUrl: ""
 
 frontend:
+  # -- Patch Twenty frontend runtime config with `frontend.serverBaseUrl` at startup.
   overrideServerBaseUrl: false
+  # -- Server base URL injected into the frontend when override is enabled.
   serverBaseUrl: ""
 
+serviceAccount:
+  # -- Create a dedicated ServiceAccount for Twenty pods.
+  create: false
+  # -- Mount service account tokens into Twenty pods.
+  automount: true
+  # -- Additional ServiceAccount annotations.
+  annotations: {}
+  # -- ServiceAccount name. Generated from the release name when `create` is true and this is empty.
+  name: ""
+
 server:
+  # -- Number of Twenty server replicas.
   replicaCount: 1
+  # -- Additional annotations for server pods.
+  podAnnotations: {}
+  # -- Additional labels for server pods.
+  podLabels: {}
   service:
+    # -- Kubernetes Service type for the Twenty server.
     type: ClusterIP
+    # -- Kubernetes Service port for HTTP traffic.
     port: 3000
+    # -- Additional Service annotations.
+    annotations: {}
+    # -- Additional Service labels.
+    labels: {}
   persistence:
+    # -- Persist local file storage for the Twenty server.
     enabled: true
+    # -- Size of the local file storage PVC.
     size: 10Gi
+    # -- StorageClass for the local file storage PVC. Empty uses the cluster default.
     storageClass: ""
+    # -- Access modes for the local file storage PVC.
     accessModes:
       - ReadWriteOnce
   dockerDataPersistence:
+    # -- Persist `/app/docker-data`.
     enabled: true
+    # -- Size of the docker-data PVC.
     size: 100Mi
+    # -- StorageClass for the docker-data PVC. Empty uses the cluster default.
     storageClass: ""
+    # -- Access modes for the docker-data PVC.
     accessModes:
       - ReadWriteOnce
+  # -- Resource requests and limits for the server container.
   resources:
     requests:
       cpu: 250m
@@ -35,6 +84,7 @@ server:
     limits:
       cpu: 1000m
       memory: 1024Mi
+  # -- Static environment variables for the server container.
   env:
     SIGN_IN_PREFILLED: "false"
     STORAGE_TYPE: local
@@ -45,12 +95,52 @@ server:
     IS_MULTIWORKSPACE_ENABLED: "false"
     DEFAULT_SUBDOMAIN: app
     IS_WORKSPACE_CREATION_LIMITED_TO_SERVER_ADMINS: "true"
+  # -- Additional server environment variables. Supports `valueFrom`.
+  extraEnv: []
+  # -- Additional server `envFrom` sources.
+  envFrom: []
+  # -- Container security context for the server.
+  securityContext: {}
+  # -- Server liveness probe.
+  livenessProbe:
+    httpGet:
+      path: /healthz
+      port: http
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 5
+  # -- Server readiness probe.
+  readinessProbe:
+    httpGet:
+      path: /healthz
+      port: http
+    initialDelaySeconds: 40
+    periodSeconds: 5
+    timeoutSeconds: 5
+    failureThreshold: 5
+  # -- Server startup probe.
+  startupProbe:
+    httpGet:
+      path: /healthz
+      port: http
+    initialDelaySeconds: 20
+    periodSeconds: 5
+    timeoutSeconds: 5
+    failureThreshold: 60
 
 worker:
+  # -- Number of Twenty worker replicas.
   replicaCount: 1
+  # -- Additional annotations for worker pods.
+  podAnnotations: {}
+  # -- Additional labels for worker pods.
+  podLabels: {}
+  # -- Command used to run the worker container.
   command:
     - yarn
     - worker:prod
+  # -- Resource requests and limits for the worker container.
   resources:
     requests:
       cpu: 250m
@@ -58,27 +148,99 @@ worker:
     limits:
       cpu: 1000m
       memory: 2048Mi
+  # -- Static environment variables for the worker container.
+  env: {}
+  # -- Additional worker environment variables. Supports `valueFrom`.
+  extraEnv: []
+  # -- Additional worker `envFrom` sources.
+  envFrom: []
+  # -- Container security context for the worker.
+  securityContext: {}
+
+migrations:
+  # -- Run database migrations as a Helm hook Job before install and upgrade.
+  enabled: true
+  # -- Additional annotations for the migration Job.
+  annotations: {}
+  # -- Additional annotations for the migration pod.
+  podAnnotations: {}
+  # -- Additional labels for the migration pod.
+  podLabels: {}
+  # -- Migration command.
+  command:
+    - sh
+    - -c
+    - node packages/twenty-server/dist/command/command.js run-instance-commands --force
+  # -- Migration Job backoff limit.
+  backoffLimit: 3
+  # -- Seconds to retain the completed migration Job. Empty leaves the field unset.
+  ttlSecondsAfterFinished: 300
+  # -- Resource requests and limits for the migration container.
+  resources: {}
+  # -- Container security context for the migration container.
+  securityContext: {}
 
 database:
+  # -- PostgreSQL host. Required.
   host: ""
+  # -- PostgreSQL port.
   port: 5432
+  # -- PostgreSQL user.
   user: twenty_app_user
+  # -- PostgreSQL database name.
   name: twenty
   passwordSecret:
+    # -- Existing Secret containing the PostgreSQL password. Required.
     name: ""
+    # -- Key in `database.passwordSecret.name` containing the PostgreSQL password.
     key: password
 
-redisUrl: redis://twenty-redis-master.apps.svc.cluster.local:6379
+# -- Redis connection URL. Required.
+redisUrl: ""
 
 secrets:
-  tokens:
-    name: twenty-tokens
-    accessToken: ""
+  encryption:
+    # -- Existing Secret containing `encryptionKey`. When set, the chart does not create an encryption Secret.
+    existingSecret: ""
+    # -- Name of the encryption Secret created by this chart. Generated from the release name when empty.
+    name: ""
+    # -- Secret key containing the Twenty encryption key.
+    key: encryptionKey
+    # -- Twenty encryption key. Generated and preserved on install/upgrade when empty.
+    encryptionKey: ""
+    # -- Fallback encryption key for key rotation. Only rendered when set.
+    fallbackEncryptionKey: ""
 
+# -- Pod-level security context shared by server and worker pods.
 podSecurityContext:
   runAsUser: 1000
   fsGroup: 1000
 
+# -- Additional annotations for all Twenty pods.
+podAnnotations: {}
+# -- Additional labels for all Twenty pods.
+podLabels: {}
+# -- PriorityClass name for Twenty pods.
+priorityClassName: ""
+# -- RuntimeClass name for Twenty pods.
+runtimeClassName: ""
+# -- Node selector for Twenty pods.
 nodeSelector: {}
+# -- Tolerations for Twenty pods.
 tolerations: []
+# -- Affinity rules for Twenty pods.
 affinity: {}
+# -- Topology spread constraints for Twenty pods.
+topologySpreadConstraints: []
+
+ingress:
+  # -- Enable an Ingress for the Twenty server.
+  enabled: false
+  # -- IngressClass name.
+  className: ""
+  # -- Additional Ingress annotations.
+  annotations: {}
+  # -- Ingress hosts and paths.
+  hosts: []
+  # -- Ingress TLS configuration.
+  tls: []

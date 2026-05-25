@@ -6,6 +6,10 @@ metadata:
   labels:
     {{- include "twenty.labels" . | nindent 4 }}
     app.kubernetes.io/component: server
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   replicas: {{ .Values.server.replicaCount }}
   selector:
@@ -19,9 +23,36 @@ spec:
       labels:
         {{- include "twenty.labels" . | nindent 8 }}
         app.kubernetes.io/component: server
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.server.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- if or .Values.podAnnotations .Values.server.podAnnotations }}
+      annotations:
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.server.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
     spec:
+      serviceAccountName: {{ include "twenty.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automount }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- with .Values.priorityClassName }}
+      priorityClassName: {{ . | quote }}
+      {{- end }}
+      {{- with .Values.runtimeClassName }}
+      runtimeClassName: {{ . | quote }}
+      {{- end }}
       volumes:
         {{- if .Values.server.dockerDataPersistence.enabled }}
         - name: docker-data
@@ -44,25 +75,14 @@ spec:
                 echo "Waiting for database socket..."
                 sleep 2
               done
-        - name: run-migrations
-          image: {{ include "twenty.image" . }}
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command:
-            - sh
-            - -c
-            - npx -y typeorm migration:run -d dist/database/typeorm/core/core.datasource
-          env:
-            - name: DATABASE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.database.passwordSecret.name }}
-                  key: {{ .Values.database.passwordSecret.key }}
-            - name: PG_DATABASE_URL
-              value: {{ include "twenty.databaseUrl" . | quote }}
       containers:
         - name: server
           image: {{ include "twenty.image" . }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with .Values.server.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           {{- if .Values.frontend.overrideServerBaseUrl }}
           command:
             - sh
@@ -88,6 +108,8 @@ spec:
               containerPort: {{ .Values.server.service.port }}
               protocol: TCP
           env:
+            - name: NODE_PORT
+              value: {{ .Values.server.service.port | quote }}
             - name: SERVER_URL
               value: {{ .Values.serverUrl | quote }}
             - name: DATABASE_PASSWORD
@@ -99,39 +121,37 @@ spec:
               value: {{ include "twenty.databaseUrl" . | quote }}
             - name: REDIS_URL
               value: {{ .Values.redisUrl | quote }}
-            - name: APP_SECRET
+            - name: ENCRYPTION_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "twenty.tokenSecretName" . }}
-                  key: accessToken
+                  name: {{ include "twenty.encryptionSecretName" . }}
+                  key: {{ .Values.secrets.encryption.key }}
+            {{- if and (not .Values.secrets.encryption.existingSecret) .Values.secrets.encryption.fallbackEncryptionKey }}
+            - name: FALLBACK_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "twenty.encryptionSecretName" . }}
+                  key: fallbackEncryptionKey
+            {{- end }}
+            - name: DISABLE_DB_MIGRATIONS
+              value: {{ ternary "true" "false" .Values.migrations.enabled | quote }}
             {{- range $name, $value := .Values.server.env }}
             - name: {{ $name }}
               value: {{ $value | quote }}
             {{- end }}
+            {{- with .Values.server.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.server.envFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           livenessProbe:
-            httpGet:
-              path: /
-              port: http
-            initialDelaySeconds: 0
-            periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 5
+            {{- toYaml .Values.server.livenessProbe | nindent 12 }}
           readinessProbe:
-            httpGet:
-              path: /
-              port: http
-            initialDelaySeconds: 40
-            periodSeconds: 5
-            timeoutSeconds: 5
-            failureThreshold: 5
+            {{- toYaml .Values.server.readinessProbe | nindent 12 }}
           startupProbe:
-            httpGet:
-              path: /
-              port: http
-            initialDelaySeconds: 20
-            periodSeconds: 5
-            timeoutSeconds: 5
-            failureThreshold: 60
+            {{- toYaml .Values.server.startupProbe | nindent 12 }}
           resources:
             {{- toYaml .Values.server.resources | nindent 12 }}
           volumeMounts:
@@ -143,3 +163,19 @@ spec:
             - name: server-data
               mountPath: /app/packages/twenty-server/.local-storage
             {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

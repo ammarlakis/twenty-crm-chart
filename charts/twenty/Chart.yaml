@@ -3,4 +3,10 @@ name: twenty
 description: Twenty CRM
 type: application
 version: 0.1.0
-appVersion: v1.19.1
+appVersion: v2.6.0
+home: https://twenty.com
+sources:
+  - https://github.com/twentyhq/twenty
+maintainers:
+  - name: Ammar Lakis
+    url: https://github.com/ammarlakis

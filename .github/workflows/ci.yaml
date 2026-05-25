@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Validate Renovate config JSON
+        run: python3 -m json.tool renovate.json >/dev/null
+
+      - name: Validate values schema JSON
+        run: python3 -m json.tool charts/twenty/values.schema.json >/dev/null
+
+      - name: Check release script syntax
+        run: bash -n scripts/release.sh
+
+      - name: Require explicit infrastructure values
+        shell: bash
+        run: |
+          if helm template twenty charts/twenty >/tmp/twenty.yaml 2>/tmp/twenty.err; then
+            echo "Default render unexpectedly succeeded" >&2
+            exit 1
+          fi
+          grep -q "serverUrl" /tmp/twenty.err
+
+      - name: Lint production example
+        run: helm lint charts/twenty -f charts/twenty/values.production.example.yaml
+
+      - name: Render production example
+        run: helm template twenty charts/twenty -f charts/twenty/values.production.example.yaml >/dev/null
+
+      - name: Package Helm chart
+        run: helm package charts/twenty --destination dist
