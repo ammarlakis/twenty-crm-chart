@@ -11,9 +11,9 @@ commonAnnotations: {}
 image:
   # -- Twenty container image repository.
   repository: twentycrm/twenty
-  # -- Twenty image tag. Defaults to `.Chart.AppVersion` when empty.
-  tag: ""
-  # -- Optional image digest. When set, renders `repository:tag@digest`.
+  # -- Twenty image tag.
+  tag: "v2.6.0"
+  # -- Optional image digest. When set, renders `repository@digest`.
   digest: ""
   # -- Container image pull policy.
   pullPolicy: IfNotPresent
