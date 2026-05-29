@@ -28,9 +28,7 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 
 {{- define "twenty.image" -}}
 {{- $tag := .Values.image.tag | default .Chart.AppVersion -}}
-{{- if .Values.image.digest -}}
-{{ .Values.image.repository }}@{{ .Values.image.digest }}
-{{- else if hasPrefix "@" $tag -}}
+{{- if hasPrefix "@" $tag -}}
 {{ .Values.image.repository }}{{ $tag }}
 {{- else -}}
 {{ .Values.image.repository }}:{{ $tag }}

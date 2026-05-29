@@ -13,8 +13,6 @@ image:
   repository: twentycrm/twenty
   # -- Twenty image tag.
   tag: "v2.6.0"
-  # -- Optional image digest. When set, renders `repository@digest`.
-  digest: ""
   # -- Container image pull policy.
   pullPolicy: IfNotPresent
 
