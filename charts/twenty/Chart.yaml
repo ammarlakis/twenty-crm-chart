@@ -3,7 +3,7 @@ name: twenty
 description: Twenty CRM
 type: application
 version: 0.1.0
-appVersion: v2.34.0
+appVersion: v2.39.5
 home: https://twenty.com
 sources:
   - https://github.com/twentyhq/twenty
