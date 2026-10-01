@@ -1,2 +1,4 @@
 dist/
 *.tgz
+/.cocoindex_code/
+/release-notes.md

@@ -1,0 +1,17 @@
+serverUrl: http://localhost:3000
+redisUrl: redis://smoke-redis:6379
+
+database:
+  host: smoke-postgres
+  user: postgres
+  passwordSecret:
+    name: smoke-postgres
+
+migrations:
+  enabled: false
+
+server:
+  persistence:
+    enabled: false
+  dockerDataPersistence:
+    enabled: false

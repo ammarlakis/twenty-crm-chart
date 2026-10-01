@@ -37,12 +37,3 @@ helm install twenty ./charts/twenty -f values.local.yaml
 
 Do not deploy the example values unchanged; they contain placeholder hostnames
 and token values.
-
-## Release
-
-```sh
-./scripts/release.sh
-```
-
-Set `RELEASE_VERSION=0.2.0` to force a version, or `RELEASE_PUSH=false` to leave
-the release commit and tag local.
