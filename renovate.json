@@ -1,20 +1,4 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended"],
-  "customManagers": [
-    {
-      "customType": "regex",
-      "managerFilePatterns": ["/^charts\\/twenty\\/Chart\\.yaml$/"],
-      "matchStrings": ["appVersion:\\s*(?<currentValue>\\S+)"],
-      "datasourceTemplate": "docker",
-      "depNameTemplate": "twentycrm/twenty"
-    }
-  ],
-  "packageRules": [
-    {
-      "matchPackageNames": ["twentycrm/twenty"],
-      "groupName": "Twenty CRM image",
-      "semanticCommitType": "build"
-    }
-  ]
+  "extends": ["config:recommended"]
 }
