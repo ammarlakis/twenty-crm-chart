@@ -17,7 +17,7 @@ spec:
         - |
           wget -T 10 -O /tmp/health.json "$URL/healthz"
           grep -Eq '"status"[[:space:]]*:[[:space:]]*"ok"' /tmp/health.json
-          wget -T 10 -O /tmp/index.html "$URL/"
+          wget -T 10 --header='Accept: text/html' -O /tmp/index.html "$URL/"
           grep -qi 'twenty' /tmp/index.html
       env:
         - name: URL
