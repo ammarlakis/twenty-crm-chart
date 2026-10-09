@@ -12,7 +12,7 @@ image:
   # -- Twenty container image repository.
   repository: twentycrm/twenty
   # -- Twenty image tag.
-  tag: "v2.45.6@sha256:dca6d82985901468b391c0335aa8f0519a52b9809709e66f2de1dbff04351e53"
+  tag: "v2.45.8@sha256:7ea7839b894594e5df73af38a6aca56692ee32ba245a8d9f64c78c13b8857f08"
   # -- Container image pull policy.
   pullPolicy: IfNotPresent
 
