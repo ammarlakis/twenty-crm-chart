@@ -4,7 +4,7 @@ description: Twenty CRM
 type: application
 version: 0.1.5
 # renovate: image=twentycrm/twenty
-appVersion: v2.57.1
+appVersion: v2.58.2
 home: https://twenty.com
 sources:
   - https://github.com/twentyhq/twenty
