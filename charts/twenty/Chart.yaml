@@ -2,7 +2,7 @@ apiVersion: v2
 name: twenty
 description: Twenty CRM
 type: application
-version: 0.1.5
+version: 0.1.6
 # renovate: image=twentycrm/twenty
 appVersion: v2.58.2
 home: https://twenty.com
