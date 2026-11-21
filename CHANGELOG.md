@@ -1,4 +1,10 @@
 # Changelog
+## [0.1.7] - 2026-11-21
+
+### Dependencies
+
+- Update twentycrm/twenty docker tag to v2.59.3 (#42)
+
 ## [0.1.6] - 2026-11-14
 
 ### Dependencies
