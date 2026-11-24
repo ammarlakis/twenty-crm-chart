@@ -1,6 +1,6 @@
 # twenty
 
-![Version: 0.1.7](https://img.shields.io/badge/Version-0.1.7-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v2.59.3](https://img.shields.io/badge/AppVersion-v2.59.3-informational?style=flat-square)
+![Version: 0.1.8](https://img.shields.io/badge/Version-0.1.8-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v2.62.2](https://img.shields.io/badge/AppVersion-v2.62.2-informational?style=flat-square)
 
 Twenty CRM
 
@@ -34,7 +34,7 @@ Twenty CRM
 | fullnameOverride | string | `""` | Override the full release name used for generated Kubernetes resources. |
 | image.pullPolicy | string | `"IfNotPresent"` | Container image pull policy. |
 | image.repository | string | `"twentycrm/twenty"` | Twenty container image repository. |
-| image.tag | string | `"v2.59.3@sha256:1a1e8a8db27fef92227e2817678968a17795d586c241be257c3c6305c65706a6"` | Twenty image tag. |
+| image.tag | string | `"v2.62.2@sha256:5f8f767b6f3a1a195f9e5f3370e6d819ab235a578d8012c8edb84ccdd277b702"` | Twenty image tag. |
 | imagePullSecrets | list | `[]` | Image pull secrets for private registries. |
 | ingress.annotations | object | `{}` | Additional Ingress annotations. |
 | ingress.className | string | `""` | IngressClass name. |
